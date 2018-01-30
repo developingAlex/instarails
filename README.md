@@ -189,17 +189,87 @@ Navigate to your rails apps folder and in a terminal execute:
 
     which basically says margin-top: 1rem [as per the docs](https://getbootstrap.com/docs/4.0/utilities/spacing/)
 
+    Add the same utility class to the h2 element:
+
+    `<h2 class="mt-3">The number two photo social app</h2>`
 
 ## Make use of devise actions
 
+1. Next we want to add a sign in link to the landing page, to do that we see from the [devise wiki](https://github.com/plataformatec/devise/wiki/How-To:-Add-sign_in,-sign_out,-and-sign_up-links-to-your-layout-template) that there's a section on adding sign in sign out etc links to your layout, the one for signing in is `new_user_session_path`, add the following code to the landing index.html.erb just underneath the h2 element:
 
+    ```erb
+    <nav>
+        <%= link_to 'Sign in', new_user_session_path %>
+    </nav>
+    ```
 
+    Note the above is ruby shorthand for `link_to ('Sign in', new_user_session_path)`, we're just calling a function.
+1. The link for new user sign up is `new_user_registration_path` so we can add that as well:
 
+    ```erb
+    <nav>
+        <%= link_to 'Sign in', new_user_session_path %>
+        <%= link_to 'Sign up', new_user_registration_path %>
+    </nav>
+    ```
+1. To make the links more relevant depending on the user's signed in status we can simply add an if statement to conditionally show particular links:
 
+    ```erb
+    <nav>
+        <% if user_signed_in? %>
+            <%= link_to 'Edit account', edit_user_registration_path %>
+            <%= link_to 'Sign out', destroy_user_session_path, method: :delete %>
+        <% else %>
+            <%= link_to 'Sign in', new_user_session_path %>
+            <%= link_to 'Sign up', new_user_registration_path %>
+        <% end %>
+    </nav>
+    ```
+## Use Bootstrap to turn the links into buttons
+1. There are some class names we can use on our links to make them look more like buttons: `btn` and then the type of button, eg. `btn-primary`, `btn-light`, `btn-dark`, etc.
 
+    We add them to the end of the `link_to`'s arguments:
 
+    ```erb
+    <nav>
+        <% if user_signed_in? %>
+            <%= link_to 'Edit account', edit_user_registration_path, class: 'btn btn-default'  %>
+            <%= link_to 'Sign out', destroy_user_session_path, method: :delete, class: 'btn btn-danger'  %>
+        <% else %>
+            <%= link_to 'Sign in', new_user_session_path, class: 'btn btn-default' %>
+            <%= link_to 'Sign up', new_user_registration_path, class: 'btn btn-default'  %>
+        <% end %>
+    </nav>
+    ```
 
+## Use the Shrine gem for image uploading
+1. Following from the [quick start](https://github.com/janko-m/shrine#quick-start) section of the Shrine readme on github we'll add the following line to our gemfile:
 
+    ```
+    # use shrine for image uploading
+    gem 'shrine'
+    ```
+1. Then create a file called shrine.rb in the config/initializers folder with the following content (which comes from the quick start guide):
+
+    ```ruby
+    require "shrine"
+    require "shrine/storage/file_system"
+
+    Shrine.storages = {
+    cache: Shrine::Storage::FileSystem.new("public", prefix: "uploads/cache"), # temporary
+    store: Shrine::Storage::FileSystem.new("public", prefix: "uploads/store"), # permanent
+    }
+
+    Shrine.plugin :sequel # or :activerecord
+    Shrine.plugin :cached_attachment_data # for forms
+    Shrine.plugin :rack_file # for non-Rails apps
+    ```
+1. We want to make a couple of changes to that file to suit our situation (rails) so...
+    1. Change the third last line from using sequel to use instead activerecord as that is what rails uses:
+
+        `Shrine.plugin :activerecord # or :sequel`
+    1. Comment out the last line as that is for non-rails apps judging by the comment
+1. 
 # Note to self; ensure you cover the following:
 
 
