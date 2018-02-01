@@ -16,7 +16,7 @@
     <% @photos.each do |photo| %>
       <tr>
         <td><%= image_tag photo.image[:small].url %></td>
-        <td><%= photo.user %></td>
+        <td><%= photo.user.email %></td>
         <td><%= photo.description %></td>
         <td><%= link_to 'Show', photo %></td>
         <td><%= link_to 'Edit', edit_photo_path(photo) %></td>

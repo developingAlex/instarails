@@ -327,6 +327,10 @@ Navigate to your rails apps folder and in a terminal execute:
     followed by:
 
     `rails db:migrate`
+
+    Then go to your photo model, app/models/photo.rb and add the following line just after the `class` line as per the shrine readme:
+
+    `include ImageUploader::Attachment.new(:image) # adds an 'image' virtual attribute`
 1. If your server is running you might need to restart, and you should see a form for creating a new photo if you visit http://localhost:3000/photos/new
 1. The field for the image data is currently just a text box so we want to change that to be a file selector. Go to your `app/views/photos/_form.html.erb` file and change the `form.text_field` for the Image data row to be `form.file_field`
 1. Checkout the `photos_controller.rb` file and scroll to the bottom where the params whitelist is and remove the `user_id` because we don't want the user to be able to submit a photo under the guise of another user.
