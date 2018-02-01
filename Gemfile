@@ -39,6 +39,10 @@ gem 'devise'
 gem 'bootstrap', '~> 4.0.0'
 # Use shrine for image uploading
 gem 'shrine'
+gem 'fastimage' # for store_dimensions plugin
+# Processing
+gem 'image_processing'
+gem 'mini_magick'
 
 group :development, :test do
   # Call 'byebug' anywhere in the code to stop execution and get a debugger console
