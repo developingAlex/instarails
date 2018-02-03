@@ -27,6 +27,8 @@ Navigate to your rails apps folder and in a terminal execute:
     1. From our project directory, execute the following to update our project
     
         `bundle install`
+
+        followed by a restart of your rails server if it is running.
     1. Then we run the generator, in the terminal execute:
 
         `rails generate devise:install`
@@ -141,6 +143,8 @@ Navigate to your rails apps folder and in a terminal execute:
     1. From our project directory, execute the following to update our project
     
         `bundle install`
+
+        followed by a restart of your rails server if it is running.
     1. Change our app/assets/stylesheets/application.css file to have the extension of scss instead and then remove all of its default contents and just add the following line:
 
         `@import "bootstrap";`
@@ -302,7 +306,7 @@ Navigate to your rails apps folder and in a terminal execute:
         end
     end
     ```
-1. Notice this is file that contains the code that handles resizing images to a certain size. In this case it takes the original image and creates a thumbnail version of it which is 300x300 and then it saves both versions together.
+1. Notice this is the file that contains the code that handles resizing images to a certain size. In this case it takes the original image and creates a small (thumbnail) version of it which is 300x300 and then it saves both versions together.
 1. Checking the Gemfile example on [Shrine's github](https://github.com/erikdahlstrand/shrine-rails-example/blob/master/Gemfile) there is also some other gems that we'll need so add the following lines to your gemfile:
 
     ```
@@ -311,7 +315,7 @@ Navigate to your rails apps folder and in a terminal execute:
     gem 'image_processing'
     gem 'mini_magick'
     ```
-1. Run a bundle install to get those gems
+1. Run a bundle install to get those gems followed by a restart of your rails server if it is running.
 1. Then we want to reproduce the examples [photo model](https://github.com/erikdahlstrand/shrine-rails-example/blob/master/app/models/photo.rb) and in checking the examples migration file for photo model we see that they just made a simple model named Photo with an image_data string attribute.
 
     But here is where it gets tricky, because looking at the Shrine readme in the quick start section, the code snippets reveal that while they're using the name `image` for the variable that is the actual uploaded image, in the database they specify it must be named `image_data`.
@@ -324,14 +328,15 @@ Navigate to your rails apps folder and in a terminal execute:
 
     `rails g scaffold Photo image_data:string user:references description:text`
 
-    followed by:
+    Then we need to run a migration to establish the database columns for our photo model.
 
     `rails db:migrate`
 
-    Then go to your photo model, app/models/photo.rb and add the following line just after the `class` line as per the shrine readme:
+    Then go to your photo model file, `app/models/photo.rb`, and add the following line just after the `class` line as per the shrine readme:
 
     `include ImageUploader::Attachment.new(:image) # adds an 'image' virtual attribute`
-1. If your server is running you might need to restart, and you should see a form for creating a new photo if you visit http://localhost:3000/photos/new
+
+1. If your server is running you may need to restart, and you should see a form for creating a new photo if you visit http://localhost:3000/photos/new
 1. The field for the image data is currently just a text box so we want to change that to be a file selector. Go to your `app/views/photos/_form.html.erb` file and change the `form.text_field` for the Image data row to be `form.file_field`
 1. Checkout the `photos_controller.rb` file and scroll to the bottom where the params whitelist is and remove the `user_id` because we don't want the user to be able to submit a photo under the guise of another user.
 1. Likewise, go to the `_form.html.erb` for photos and remove the row regarding the user id.
@@ -339,7 +344,7 @@ Navigate to your rails apps folder and in a terminal execute:
 
     `@photo.user = current_user`
 
-1. Now because we scaffolded to create the photo resource and used `image_data` as the name of one of its attributes (because the shrine readme demanded the table in the database have the `_data` appended to the name of the attribute) we have to fix where the scaffold used that name in the controller and the views and revert it back to `image`:
+1. Now because we scaffolded to create the photo resource and used `image_data` as the name of one of its attributes (because the shrine readme demanded the table in the database have the `_data` appended to the name of the attribute) we have to fix where the scaffold used that name in the controller and the views and revert it back to `image` because while shrine expects the database column to have the `_data` appended to the name of the models attribute it doesn't want that to be part of the name of the attribute used elsewhere throughout the program:
 
     1. Go to the `app/views/photos/_form.html.erb` file and you could just find all `image_data` and replace with `image`.
     1. Go to the `app/controllers/photos_controller.rb` file and scroll to the bottom where the params whitelist line is and edit that to remove the `_data` from `image_data`.
@@ -350,7 +355,16 @@ Navigate to your rails apps folder and in a terminal execute:
 
         `params.require(:photo).permit(:image, :description)`
     1. Go to the `app/views/photos/index.html.erb` file and rename the part where it has `<%= photo.image_data %>` to `<%= photo.image %>`
-    
+    1. At this point you should now have `image` and **not** `image_data` appearing in the following files:
+        * `app/views/photos/_form.html.erb`
+        * `app/views/photos/show.html.erb`
+        * `app/views/photos/index.html.erb`
+        * `app/models/image_uploader.rb`
+        * `app/controllers/photos_controller.rb`
+    1. And you should only have `image_data` appearing in your database which you can confirm by checking the following files:
+        * `db/schema.rb`
+        * `db/migrate/` and then check the migration that introduced the Photo model
+        * Alternatively, in your projects directory in a terminal type `rails console` then in there type `Photo.inspect` and ensure that one of it's attributes is called `image_data` and not just `image`.
     Again the reason for doing this is that we want our photo model to have an attribute `image` but the docs for Shrine indicate that in the database the table column must be named with the `_data` added to the end, so `image_data`.
 
 1. Now how to display the image. First go to the `image_uploader.rb` file and check the end of it. You should see a line like this: `{ original: io, small: small }` which indicatese the different versions of the image you'll have available.
@@ -404,10 +418,20 @@ Navigate to your rails apps folder and in a terminal execute:
 
         `photo.image[:original].url` 
 
-        and then couple that with an `image_tag`
+        and then couple that with rails' `image_tag` helper so that we end up with the url being wrapped in the appropriate html in order to render the actual image on in the browser.
 
+1. Note: In the class it was shown that if you're having issues with the prerequisites of having imagemagick and graphicsmagick installed, you can work around that by removing all the content in `image_uploader.rb` except for the class name declaration and in this way you will lose the ability to have your uploaded images automatically resized, but it removes a variable if you're struggling to get this to work. If you want to go that route set your `image_uploader.rb` to the following:
+    ```ruby
+    class ImageUploader < Shrine 
+    end
+    ```
 1. In the `show.html.erb` file for photos change the `@photo.user` value to instead be their email, `@photo.user.email`
+1. While you're in the show page, if you've done some experimenting already with the uploading of images, you may notice that the display of the image on the show page, as it's displaying the original size, may not fit the image all in the browser especially if you upload a high resolution image or you resize the browser to make it smaller. Since we've got Bootstrap at our disposal, there is a handy bootstrap class we can use called 'img-fluid', so add that to the end of the image_tag line:
+    ```ruby
+    <%= image_tag @photo.image[:original].url, class: 'img-fluid' %>
+    ```
 
+    That will result in the image elegantly resizing itself to fit into the viewport.
 
 # Note to self; ensure you cover the following:
 
