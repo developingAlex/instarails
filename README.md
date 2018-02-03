@@ -273,7 +273,7 @@ Navigate to your rails apps folder and in a terminal execute:
 
         `Shrine.plugin :activerecord # or :sequel`
     1. Comment out the last line as that is for non-rails apps judging by the comment
-1. Copy the code from the [examples image_uploader model](https://github.com/erikdahlstrand/shrine-rails-example/blob/master/app/models/image_uploader.rb) and paste into your own image_uploader.rb file stored in app/models, here's the code:
+1. Copy the code from the [examples image_uploader model](https://github.com/erikdahlstrand/shrine-rails-example/blob/master/app/models/image_uploader.rb) and paste into your own image_uploader.rb file stored in a new folder you'll create within the app folder called 'uploaders', here's the code:
 
     ```ruby
     require "image_processing/mini_magick"
@@ -359,7 +359,7 @@ Navigate to your rails apps folder and in a terminal execute:
         * `app/views/photos/_form.html.erb`
         * `app/views/photos/show.html.erb`
         * `app/views/photos/index.html.erb`
-        * `app/models/image_uploader.rb`
+        * `app/uploaders/image_uploader.rb`
         * `app/controllers/photos_controller.rb`
     1. And you should only have `image_data` appearing in your database which you can confirm by checking the following files:
         * `db/schema.rb`
