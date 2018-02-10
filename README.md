@@ -487,6 +487,75 @@ Next we'll implement the 'likes' functionality, this is the functionality where 
 
     `git checkout -b likes`
 
+1. Liking of photos will be handled with a relationship in our database. We can achieve this by using a ['join table'](https://en.wikipedia.org/wiki/Join_%28SQL%29). Basically this will be a table in our database that contains the relations between users and photos. 
+
+    A simplified example of our 'user' table might look like this: 
+    
+    id | email | hashed password
+    -----|----|---
+    1 | billy@gmail.com | efcd4d9ca350c9dd077e05ea
+    2 | barbara@hotmail.com | a13e2e42a9045c842df69531
+    3 | ernie@yahoo.com |  7e07f4c8c9b68f384764998a
+
+    And our 'photo' table like this: 
+    
+    id | user | image_data | description
+    -----|----|---|---
+    1 | 1 | cXDxh5TAsYhiEXcUw+6zVMov4cs&hellip; | "walk in the park"
+    2 | 1 | WYW7NhKKqaTwX2cWR4CWbDAzuZ8&hellip; | "my dog ellie"
+    3 | 2 | f0XzSg05KsN+yKLxuQAtIzzF0Uk&hellip; | "new bicycle"
+
+    So the table we need to be able to associate a 'like' between a user and a photo just needs to be like this:
+
+    'likes' table:
+
+    user_id | photo_id
+    -----|----
+    1 | 3
+    3 | 1
+    3 | 2
+
+    What the above example would mean then is that user 1 (billy) likes photo 3 (barbaras photo of her 'new bicycle') and that is all the photos billy likes.
+    
+    User 3 (Ernie) then likes two photos, photo 1 ('walk in the park') and photo 2 ('my dog ellie')
+
+    And user 2 (Barbara) hasn't liked any photos yet as evidenced by the lack of any rows in that table that have 2 in the user_id column. 
+1. To make the join table execute the following in the terminal:
+
+    `rails g migration CreateJoinTableLikes user photo`
+
+    (for the documentation on this go to http://edgeguides.rubyonrails.org/active_record_migrations.html and search for join table in the 'creating a migration' section.)
+
+1. That will create a migration file that we'll then need to edit so go and open it and have a look.
+1. If you have dash or zeal installed with the rails documentation you can search `create_join_table` as you see it in that migration file for some information.
+1. Going with the simple name of 'likes' for our table amend the create_join_table line from this:
+
+    `create_join_table :users, :photos do |t|`
+
+    to this:
+
+    `create_join_table :users, :photos, table_name: :likes do |t|`
+1. Now within that block you'll see that there are two suggestions commented out. They are to add an index on particular columns, one adds it to the user and one adds it to the photo. The one were user comes before photo means that the database will be able to efficiently retrieve all the rows that have a particular user id, so that would allow for you to, given a particular user, see all the photos that were liked by that user. The reverse, where the photo comes before the user, would be to index the photo, so it would be very efficient at retrieving all rows that have a particular photo id. This would be useful for, given a particular photo, you wanted to find all the users that liked that photo.
+
+    I think we would want both in our case, so that if we create a show page for users, when viewing a user we can see all the photos that were liked by that user, but also when we view a photo, we want to be able to see all the users that liked that photo.
+
+    So basically you can go ahead and  uncomment both lines.
+
+1. Next we want to ensure that a particular user can only like a particular photo once, so we can apply the unique: true argument to the t.index lines so it should now look like this:
+
+    ```ruby
+    t.index [:user_id, :photo_id], unique: true
+    t.index [:photo_id, :user_id], unique: true
+    ```
+1. We also want it to save the created at timestamp for every like, so that when listing all the users who have liked a photo they can appear in order based on when they liked it.
+
+    to do that just add this line in that block:
+
+    `t.timestamp :created_at`
+
+    **Note**: in the above line there is an alternative line you might see floating around in rails documentation called `t.timestamps`, that is basically shorthand for doing both created_at and updated_at, but since in our case we only want/need the one, created_at, we use the singular `t.timestamp` instead. It would be wrong to say `t.timestamps :created_at`
+1. Now we're ready to migrate
+    `rails db:migrate`
 1. 
 # Note to self; ensure you cover the following:
 
