@@ -469,6 +469,8 @@ Navigate to your rails apps folder and in a terminal execute:
 
     <%= link_to 'New Photo', new_photo_path %>
     ```
+1. Navigate to the `show.html.erb` for the photos and repeat the same trick to only show the link to edit if the photos user is the same as the current user.
+
 ## Add new photo button to top of page
 
 It would be more convenient if the New Photo link that appears at the end of the list of photos were more button-looking and stayed at the top of the page as we scrolled down. We can achieve that easily with bootstrap by putting the link in a `<nav>` at the top and using bootstrap classes, in particular `btn` and `sticky-top`, to achieve this:
