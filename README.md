@@ -426,13 +426,66 @@ Navigate to your rails apps folder and in a terminal execute:
     end
     ```
 1. In the `show.html.erb` file for photos change the `@photo.user` value to instead be their email, `@photo.user.email`
-1. While you're in the show page, if you've done some experimenting already with the uploading of images, you may notice that the display of the image on the show page, as it's displaying the original size, may not fit the image all in the browser especially if you upload a high resolution image or you resize the browser to make it smaller. Since we've got Bootstrap at our disposal, there is a handy bootstrap class we can use called 'img-fluid', so add that to the end of the image_tag line:
+1. While you're in the show page, if you've done some experimenting already with the uploading of images, you may notice that the display of the image on the show page (as it's displaying the original size) may not fit the image all in the browser especially if you upload a high resolution image or you resize the browser to make it smaller. Since we've got Bootstrap at our disposal, there is a handy bootstrap class we can use called 'img-fluid', so add that to the end of the image_tag line:
     ```ruby
     <%= image_tag @photo.image[:original].url, class: 'img-fluid' %>
     ```
 
     That will result in the image elegantly resizing itself to fit into the viewport.
+## Improve photos page layout
+1. The way our /photos page looks at the moment is like any stock rails app so it would be better if it was customised a little. 
 
+    In the below source code you can see that the code in the `app/views/photos/index.html.erb` file has been amended to 
+    
+    * remove the big h1 'photos' header, 
+    * make the actual image a link to the image's show page where it can be viewed in full resolution, 
+    * moved the user email and the description to be below each image, and
+    * added some logic around showing the edit and delete links such that they will only show for the user if the photo is one that the user uploaded.
+
+    ```erb
+    <p id="notice"><%= notice %></p>
+
+    <section>
+        <% @photos.each do |photo| %>
+        <article>
+            <%= link_to photo do %>
+            <figure>
+                <%= image_tag photo.image[:small].url alt: photo.description %>
+            </figure>
+            <% end %>
+            <p>
+            <strong><%= photo.user.email %></strong> 
+            <%= photo.description %>
+            </p>
+            <% if photo.user == current_user %>
+            <%= link_to 'Edit', edit_photo_path(photo) %>
+            <%= link_to 'Destroy', photo, method: :delete, data: { confirm: 'Are you sure?' } %>
+            <% end %>
+        </article>
+        <% end %>
+    </section>
+
+    <br>
+
+    <%= link_to 'New Photo', new_photo_path %>
+    ```
+## Add new photo button to top of page
+
+It would be more convenient if the New Photo link that appears at the end of the list of photos were more button-looking and stayed at the top of the page as we scrolled down. We can achieve that easily with bootstrap by putting the link in a `<nav>` at the top and using bootstrap classes, in particular `btn` and `sticky-top`, to achieve this:
+
+```erb
+<nav class="nav sticky-top justify-content-center pt-2 pb-2 bg-light">
+    <%= link_to 'New Photo', new_photo_path, class: 'btn btn-primary' %>
+</nav>
+```
+## Likes functionality
+
+Next we'll implement the 'likes' functionality, this is the functionality where one user can 'like' the photo of another user.
+1. Firstly as this is a distinct new feature, lets practice using git branches to keep our work separate from our master branch before we're happy with it, we'll create and switch to a new branch called 'likes'
+
+    `git checkout -b likes`
+
+1. 
 # Note to self; ensure you cover the following:
 
 
