@@ -556,7 +556,63 @@ Next we'll implement the 'likes' functionality, this is the functionality where 
     **Note**: in the above line there is an alternative line you might see floating around in rails documentation called `t.timestamps`, that is basically shorthand for doing both created_at and updated_at, but since in our case we only want/need the one, created_at, we use the singular `t.timestamp` instead. It would be wrong to say `t.timestamps :created_at`
 1. Now we're ready to migrate
     `rails db:migrate`
-1. 
+1. To establish our models to help with the 'likes' we'll declare the the user model has many photos, and the photo model has and belongs to many likers:
+
+    user.rb:
+
+    ```ruby
+    class User < ApplicationRecord
+        # Include default devise modules. Others available are:
+        # :confirmable, :lockable, :timeoutable and :omniauthable
+        devise :database_authenticatable, :registerable,
+                :recoverable, :rememberable, :trackable, :validatable
+
+        has_many :photos
+    end
+    ```
+    
+    That will allow us to be able to retrieve all the photos that belong to a particular user, not by going `Photo.where(user: id_of_the_user_we_want)` but simply `our_user.photos`
+
+    Similarly for the photo model, we can add the `has_and_belongs_to_many` line as you see below:
+    
+    photo.rb:
+
+    ```ruby
+    class Photo < ApplicationRecord
+        include ImageUploader::Attachment.new(:image) # adds an `image` virtual attribute
+        belongs_to :user
+        has_and_belongs_to_many :likers, class_name: 'User', join_table: :likes
+    end
+    ```
+
+    Note that we've put in `class_name: 'User'`, that's because without that rails would assume there is a 'liker' model.
+    Similarly with the option `join_table: :likes`, we specifically named the join table 'likes' so we have to specify it here otherwise rails would assume there is some join table with both photo and user in the name probably.
+
+    And that will then give us the ability to get all the users who liked a particular photo like this: `our_photo.likers`
+
+    We can also record other users as liking that photo like this: `our_photo.likers << another_user`
+
+    If they then unlike the photo we can just do this: `our_photo.likers.destroy(another_user)`
+
+1. Add some methods to the Photo model that check if a user likes a photo or takes a user and adds them to the list of users that like that photo, etc:
+
+    ```ruby
+    def liked_by?(user)
+        likers.exists?(user.id)
+    end
+
+    def toggle_like_by(user)
+        if liked_by?(user)
+            likers.destroy(user.id)
+        else
+            likers << user
+        end
+    end
+    ```
+1. Add a 'like' button to the photo show page:
+
+    
+
 # Note to self; ensure you cover the following:
 
 
