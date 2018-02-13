@@ -601,7 +601,7 @@ Next we'll implement the 'likes' functionality, this is the functionality where 
         likers.exists?(user.id)
     end
 
-    def toggle_like_by(user)
+    def toggle_liked_by(user)
         if liked_by?(user)
             likers.destroy(user.id)
         else
@@ -611,7 +611,70 @@ Next we'll implement the 'likes' functionality, this is the functionality where 
     ```
 1. Add a 'like' button to the photo show page:
 
-    
+    ```ruby
+    <%= form_with(model: @photo, method: :patch) do |form| %>
+        <% liked = @photo.liked_by?(current_user) %>
+        <%= form.hidden_field :liked, value: liked %>
+        <%= form.button liked ? 'Unlike' : 'Like' %>
+    <% end %>
+    ```
+
+    This way is using a form to allow for the submitting of information back to our server, it's a patch method because we're updating an existing property of the photo model, not making a brand new model or anything, and then it establishes a hidden field in the form preset to a boolean based on whether the user currently likes the photo or not. This is what gets submitted when they click the like or unlike button.
+
+1. Add the like/unlike logic to the controller:
+
+    Because the way we're telling the server that the user likes the photo is with the use of a form and the patch method, it will be routed to the same method in the controller as would the request coming from the form to edit a photo, so we need to add the logic to check if the request coming through is coming from the liking form.
+
+    Add the following method in amongst the other private methods of the photos_controller file:
+
+    ```ruby
+    def is_liking?
+        # is there a 'liked' field in the form?
+        params.require(:photo)[:liked].present?
+    end
+    ```
+
+    And then change the PATCH/PUT method from this:
+
+    ```ruby
+
+    # PATCH/PUT /photos/1
+    # PATCH/PUT /photos/1.json
+    def update
+        respond_to do |format|
+            if @photo.update(photo_params)
+                format.html { redirect_to @photo, notice: 'Photo was successfully updated.' }
+                format.json { render :show, status: :ok, location: @photo }
+            else
+                format.html { render :edit }
+                format.json { render json: @photo.errors, status: :unprocessable_entity }
+            end
+        end
+    end
+    ```
+
+    to:
+
+    ```ruby
+    # PATCH/PUT /photos/1
+    # PATCH/PUT /photos/1.json
+    def update
+        respond_to do |format|
+            if is_liking?
+                #toggle whether this photo is liked by the current user
+                @photo.toggle_liked_by(current_user)
+                format.html { redirect_to @photo }
+                format.json { render :show, status: :ok, location: @photo }
+            elsif @photo.update(photo_params)
+                format.html { redirect_to @photo, notice: 'Photo was successfully updated.' }
+                format.json { render :show, status: :ok, location: @photo }
+            else
+                format.html { render :edit }
+                format.json { render json: @photo.errors, status: :unprocessable_entity }
+            end
+        end
+    end
+    ```
 
 # Note to self; ensure you cover the following:
 

@@ -7,7 +7,7 @@ class Photo < ApplicationRecord
     likers.exists?(user.id)
   end
 
-  def toggle_like_by(user)
+  def toggle_liked_by(user)
       if liked_by?(user)
           likers.destroy(user.id)
       else
