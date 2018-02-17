@@ -487,7 +487,195 @@ Next we'll implement the 'likes' functionality, this is the functionality where 
 
     `git checkout -b likes`
 
-1. 
+1. Liking of photos will be handled with a relationship in our database. We can achieve this by using a ['join table'](https://en.wikipedia.org/wiki/Join_%28SQL%29). Basically this will be a table in our database that contains the relations between users and photos. 
+
+    A simplified example of our 'user' table might look like this: 
+    
+    id | email | hashed password
+    -----|----|---
+    1 | billy@gmail.com | efcd4d9ca350c9dd077e05ea
+    2 | barbara@hotmail.com | a13e2e42a9045c842df69531
+    3 | ernie@yahoo.com |  7e07f4c8c9b68f384764998a
+
+    And our 'photo' table like this: 
+    
+    id | user | image_data | description
+    -----|----|---|---
+    1 | 1 | cXDxh5TAsYhiEXcUw+6zVMov4cs&hellip; | "walk in the park"
+    2 | 1 | WYW7NhKKqaTwX2cWR4CWbDAzuZ8&hellip; | "my dog ellie"
+    3 | 2 | f0XzSg05KsN+yKLxuQAtIzzF0Uk&hellip; | "new bicycle"
+
+    So the table we need to be able to associate a 'like' between a user and a photo just needs to be like this:
+
+    'likes' table:
+
+    user_id | photo_id
+    -----|----
+    1 | 3
+    3 | 1
+    3 | 2
+
+    What the above example would mean then is that user 1 (billy) likes photo 3 (barbaras photo of her 'new bicycle') and that is all the photos billy likes.
+    
+    User 3 (Ernie) then likes two photos, photo 1 ('walk in the park') and photo 2 ('my dog ellie')
+
+    And user 2 (Barbara) hasn't liked any photos yet as evidenced by the lack of any rows in that table that have 2 in the user_id column. 
+1. To make the join table execute the following in the terminal:
+
+    `rails g migration CreateJoinTableLikes user photo`
+
+    (for the documentation on this go to http://edgeguides.rubyonrails.org/active_record_migrations.html and search for join table in the 'creating a migration' section.)
+
+1. That will create a migration file that we'll then need to edit so go and open it and have a look.
+1. If you have dash or zeal installed with the rails documentation you can search `create_join_table` as you see it in that migration file for some information.
+1. Going with the simple name of 'likes' for our table amend the create_join_table line from this:
+
+    `create_join_table :users, :photos do |t|`
+
+    to this:
+
+    `create_join_table :users, :photos, table_name: :likes do |t|`
+1. Now within that block you'll see that there are two suggestions commented out. They are to add an index on particular columns, one adds it to the user and one adds it to the photo. The one were user comes before photo means that the database will be able to efficiently retrieve all the rows that have a particular user id, so that would allow for you to, given a particular user, see all the photos that were liked by that user. The reverse, where the photo comes before the user, would be to index the photo, so it would be very efficient at retrieving all rows that have a particular photo id. This would be useful for, given a particular photo, you wanted to find all the users that liked that photo.
+
+    I think we would want both in our case, so that if we create a show page for users, when viewing a user we can see all the photos that were liked by that user, but also when we view a photo, we want to be able to see all the users that liked that photo.
+
+    So basically you can go ahead and  uncomment both lines.
+
+1. Next we want to ensure that a particular user can only like a particular photo once, so we can apply the unique: true argument to the t.index lines so it should now look like this:
+
+    ```ruby
+    t.index [:user_id, :photo_id], unique: true
+    t.index [:photo_id, :user_id], unique: true
+    ```
+1. We also want it to save the created at timestamp for every like, so that when listing all the users who have liked a photo they can appear in order based on when they liked it.
+
+    to do that just add this line in that block:
+
+    `t.timestamp :created_at`
+
+    **Note**: in the above line there is an alternative line you might see floating around in rails documentation called `t.timestamps`, that is basically shorthand for doing both created_at and updated_at, but since in our case we only want/need the one, created_at, we use the singular `t.timestamp` instead. It would be wrong to say `t.timestamps :created_at`
+1. Now we're ready to migrate
+    `rails db:migrate`
+1. To establish our models to help with the 'likes' we'll declare the the user model has many photos, and the photo model has and belongs to many likers:
+
+    user.rb:
+
+    ```ruby
+    class User < ApplicationRecord
+        # Include default devise modules. Others available are:
+        # :confirmable, :lockable, :timeoutable and :omniauthable
+        devise :database_authenticatable, :registerable,
+                :recoverable, :rememberable, :trackable, :validatable
+
+        has_many :photos
+    end
+    ```
+    
+    That will allow us to be able to retrieve all the photos that belong to a particular user, not by going `Photo.where(user: id_of_the_user_we_want)` but simply `our_user.photos`
+
+    Similarly for the photo model, we can add the `has_and_belongs_to_many` line as you see below:
+    
+    photo.rb:
+
+    ```ruby
+    class Photo < ApplicationRecord
+        include ImageUploader::Attachment.new(:image) # adds an `image` virtual attribute
+        belongs_to :user
+        has_and_belongs_to_many :likers, class_name: 'User', join_table: :likes
+    end
+    ```
+
+    Note that we've put in `class_name: 'User'`, that's because without that rails would assume there is a 'liker' model.
+    Similarly with the option `join_table: :likes`, we specifically named the join table 'likes' so we have to specify it here otherwise rails would assume there is some join table with both photo and user in the name probably.
+
+    And that will then give us the ability to get all the users who liked a particular photo like this: `our_photo.likers`
+
+    We can also record other users as liking that photo like this: `our_photo.likers << another_user`
+
+    If they then unlike the photo we can just do this: `our_photo.likers.destroy(another_user)`
+
+1. Add some methods to the Photo model that check if a user likes a photo or takes a user and adds them to the list of users that like that photo, etc:
+
+    ```ruby
+    def liked_by?(user)
+        likers.exists?(user.id)
+    end
+
+    def toggle_liked_by(user)
+        if liked_by?(user)
+            likers.destroy(user.id)
+        else
+            likers << user
+        end
+    end
+    ```
+1. Add a 'like' button to the photo show page:
+
+    ```ruby
+    <%= form_with(model: @photo, method: :patch) do |form| %>
+        <% liked = @photo.liked_by?(current_user) %>
+        <%= form.hidden_field :liked, value: liked %>
+        <%= form.button liked ? 'Unlike' : 'Like' %>
+    <% end %>
+    ```
+
+    This way is using a form to allow for the submitting of information back to our server, it's a patch method because we're updating an existing property of the photo model, not making a brand new model or anything, and then it establishes a hidden field in the form preset to a boolean based on whether the user currently likes the photo or not. This is what gets submitted when they click the like or unlike button.
+
+1. Add the like/unlike logic to the controller:
+
+    Because the way we're telling the server that the user likes the photo is with the use of a form and the patch method, it will be routed to the same method in the controller as would the request coming from the form to edit a photo, so we need to add the logic to check if the request coming through is coming from the liking form.
+
+    Add the following method in amongst the other private methods of the photos_controller file:
+
+    ```ruby
+    def is_liking?
+        # is there a 'liked' field in the form?
+        params.require(:photo)[:liked].present?
+    end
+    ```
+
+    And then change the PATCH/PUT method from this:
+
+    ```ruby
+
+    # PATCH/PUT /photos/1
+    # PATCH/PUT /photos/1.json
+    def update
+        respond_to do |format|
+            if @photo.update(photo_params)
+                format.html { redirect_to @photo, notice: 'Photo was successfully updated.' }
+                format.json { render :show, status: :ok, location: @photo }
+            else
+                format.html { render :edit }
+                format.json { render json: @photo.errors, status: :unprocessable_entity }
+            end
+        end
+    end
+    ```
+
+    to:
+
+    ```ruby
+    # PATCH/PUT /photos/1
+    # PATCH/PUT /photos/1.json
+    def update
+        respond_to do |format|
+            if is_liking?
+                #toggle whether this photo is liked by the current user
+                @photo.toggle_liked_by(current_user)
+                format.html { redirect_to @photo }
+                format.json { render :show, status: :ok, location: @photo }
+            elsif @photo.update(photo_params)
+                format.html { redirect_to @photo, notice: 'Photo was successfully updated.' }
+                format.json { render :show, status: :ok, location: @photo }
+            else
+                format.html { render :edit }
+                format.json { render json: @photo.errors, status: :unprocessable_entity }
+            end
+        end
+    end
+    ```
+
 # Note to self; ensure you cover the following:
 
 
