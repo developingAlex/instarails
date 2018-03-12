@@ -5,16 +5,12 @@ class CommentsController < ApplicationController
   # GET /comments.json
   def index
     @comments = Comment.all
+    @new_comment = Comment.new
   end
 
   # GET /comments/1
   # GET /comments/1.json
   def show
-  end
-
-  # GET /comments/new
-  def new
-    @comment = Comment.new
   end
 
   # GET /comments/1/edit

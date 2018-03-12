@@ -1012,6 +1012,61 @@ path you should see a comments page with a link to create a new comment.
     eg: `http://localhost:3000/photos/1/comments`
 
 
+1. At this stage if you try to click on the 'new comment' link you will get 
+a rails error screen with the message: `undefined method 'comments_path'`.
+This is another path that we'll need to adjust as a result of us nesting the 
+comments within the photos in the routes.
+
+    In the new.html.erb page for comments, change the line: 
+
+    `<%= link_to 'Back', comments_path %>`
+
+    to
+
+    `<%= link_to 'Back', photo_comments_path(@photo) %>`
+
+    And because the new page will also render the comment form partial, we'll
+    need to modify that as well. So in the _form.html.erb file for Comments 
+    change the top line from :
+
+    `<%= form_with(model: comment, local: true) do |form| %>`
+
+    to 
+
+    `<%= form_with(model: [@photo, comment], local: true) do |form| %>`
+
+    Which we can do because that is how you can refer to objects with URLs in 
+    rails as documented in the [rails guides](http://guides.rubyonrails.org/routing.html#creating-paths-and-urls-from-objects)
+
+## Integrate the new comments form into the Photo page
+
+1. It would be nicer if the user didn't have to navigate to a completely 
+different page just to leave a comment on a photo, so what we want to do is get
+the new comment form to render on the photo show page.
+
+1. In the comments index.html.erb file replace the code at the bottom of the 
+table with the following:
+
+    ```ruby
+    <%= render 'form', comment: @new_comment %>
+    ```
+
+1. Set up the provisions for that new @new_comment variable in the comments 
+controller by removing the new method and moving it's logic into the index 
+method and renaming the variable:
+
+    ```ruby
+    def index
+        @comments = Comment.all
+        @new_comment = Comment.new
+    end
+    ```
+
+1. Delete the file app/views/comments/new.html.erb since we won't be needing 
+that.
+
+1. 
+
 
 #### Note to self; ensure you cover the following:
 
