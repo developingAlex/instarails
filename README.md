@@ -940,7 +940,7 @@ photo, what we can do is describe to rails that our comments are nested within
 our photos, and to do that we simply wrap the `resources :comments` line in a 
 do end block like so:
 
-     ```ruby
+    ```ruby
     Rails.application.routes.draw do
     root to: 'landing#index'
     devise_for :users
@@ -948,11 +948,12 @@ do end block like so:
         resources :comments
     end
     ```
-1. By doing that our routes will change from basically /comments to 
-/photos/#id/comments, and as a result we'll now need to adjust the places where
- scaffolded links were assuming that comments was a top level path. So for 
- example we need to change the following line in our comments index.html.erb 
- file:
+
+1. By doing that our routes will change from basically `/comments` to 
+`/photos/#id/comments`, and as a result we'll now need to adjust the 
+places where scaffolded links were assuming that comments was a top level 
+path. So for example we need to change the following line in our comments 
+index.html.erb file:
 
     ```ruby
     <%= link_to 'New Comment', new_comment_path %>
@@ -974,7 +975,9 @@ do end block like so:
     ```ruby
     <%= link_to 'New Comment', new_photo_comment_path(@photo) %>
     ```
-1. Now we need to establish which photo @photo is going to be set to, and to do that we'll have to go to the comments controller and add the following lines in the private methods:
+1. Now we need to establish which photo @photo is going to be set to, and to do 
+that we'll have to go to the comments controller and add the following lines in 
+the private methods:
 
     ```ruby
     def set_photo
@@ -982,9 +985,18 @@ do end block like so:
     end
     ```
 
-    How did we know that we would have the param photo_id provided for us if we didn't know the convention?
+    How did we know that we would have the param photo_id provided for us if we 
+    didn't know the convention?
 
-    If we visited our site at this path (assuming you are signed in and have at least one photo uploaded) `http://localhost:3000/photos/1/comments` then we can see an error page as a result of trying to refer to @photo without it being defined, 
+    We can check the routes! `rails routes` produces output and in the URI 
+    pattern for new comment we can see 
+    `/photos/:photo_id/comments/new(.:format)` so that tells us that the param
+    for the photo is called photo_id.
+
+    Additionally if we visited our site at this path (assuming you are signed 
+    in and have at least one photo uploaded) 
+    `http://localhost:3000/photos/1/comments` then we can see an error page as 
+    a result of trying to refer to @photo without it being defined, 
 
     ![photo_id parameter shown in error message](/readme-assets/comments-path-photo-id.png)
 
@@ -994,8 +1006,8 @@ do end block like so:
     before_action :set_photo
     ```
     
-1. Now if you navigate to a photo and tack on `/comments` to the end of that path
-you should see a comments page with a link to create a new comment.
+1. Now if you navigate to a photo and tack on `/comments` to the end of that 
+path you should see a comments page with a link to create a new comment.
 
     eg: `http://localhost:3000/photos/1/comments`
 
